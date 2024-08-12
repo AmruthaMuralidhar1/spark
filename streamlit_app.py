@@ -1,151 +1,104 @@
 import streamlit as st
+import numpy as np
 import pandas as pd
-import math
-from pathlib import Path
+import matplotlib.pyplot as plt
+import networkx as nx
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
 
-# Set the title and favicon that appear in the Browser's tab bar.
+# Streamlit Page Configuration
 st.set_page_config(
-    page_title='GDP dashboard',
-    page_icon=':earth_americas:', # This is an emoji shortcode. Could be a URL too.
+    page_title='Quantum Supply Chain Manager Simulation 🚀',
+    page_icon=':package:',
+    layout='wide'
 )
 
-# -----------------------------------------------------------------------------
-# Declare some useful functions.
+# Title
+st.title('Quantum Supply Chain Manager Simulation 🚀')
+st.markdown("""
+Welcome to the **Quantum Supply Chain Manager Simulation**. This application uses simulated quantum results to optimize two key supply chain tasks:
+- **🔮 Backorder Prediction**: Predicts the likelihood of products going on backorder using quantum neural network simulation.
+- **🚚 Vehicle Routing Optimization**: Finds optimal delivery routes using quantum-inspired algorithms.
+""")
 
-@st.cache_data
-def get_gdp_data():
-    """Grab GDP data from a CSV file.
+# Generate realistic supply chain data
+def generate_data():
+    data = {
+        'Product_ID': [f'Product_{i+1}' for i in range(5)],
+        'Current_Inventory': [200, 150, 80, 120, 180],  # Inventory levels
+        'Lead_Time': [3, 7, 2, 5, 6],  # Lead time in days
+        'In_Transit_Qty': [30, 40, 15, 25, 35],
+        'Forecast_3_Month': [70, 80, 50, 65, 90],
+        'Forecast_6_Month': [120, 130, 90, 110, 150],
+        'Forecast_9_Month': [160, 190, 120, 150, 200],
+        'Sales_1_Month': [30, 35, 20, 25, 40],
+        'Sales_3_Month': [85, 90, 50, 70, 100],
+        'Sales_6_Month': [120, 130, 80, 100, 130],
+        'Sales_9_Month': [160, 180, 100, 140, 170],
+        'Backorder': [0, 1, 0, 1, 0]  # Simulated backorder labels
+    }
+    return pd.DataFrame(data)
 
-    This uses caching to avoid having to read the file every time. If we were
-    reading from an HTTP endpoint instead of a file, it's a good idea to set
-    a maximum age to the cache with the TTL argument: @st.cache_data(ttl='1d')
-    """
+data = generate_data()
 
-    # Instead of a CSV on disk, you could read from an HTTP endpoint here too.
-    DATA_FILENAME = Path(__file__).parent/'data/gdp_data.csv'
-    raw_gdp_df = pd.read_csv(DATA_FILENAME)
+# Display the dataset
+st.header('📊 Synthetic Supply Chain Data')
+st.write(data)
 
-    MIN_YEAR = 1960
-    MAX_YEAR = 2022
+# Simulate quantum neural network results for backorder prediction
+def simulate_quantum_nn(data):
+    np.random.seed(0)
+    predictions = np.random.choice([0, 1], size=len(data))
+    return predictions
 
-    # The data above has columns like:
-    # - Country Name
-    # - Country Code
-    # - [Stuff I don't care about]
-    # - GDP for 1960
-    # - GDP for 1961
-    # - GDP for 1962
-    # - ...
-    # - GDP for 2022
-    #
-    # ...but I want this instead:
-    # - Country Name
-    # - Country Code
-    # - Year
-    # - GDP
-    #
-    # So let's pivot all those year-columns into two: Year and GDP
-    gdp_df = raw_gdp_df.melt(
-        ['Country Code'],
-        [str(x) for x in range(MIN_YEAR, MAX_YEAR + 1)],
-        'Year',
-        'GDP',
-    )
+predictions = simulate_quantum_nn(data)
+data['Predicted_Backorder'] = predictions
 
-    # Convert years from string to integers
-    gdp_df['Year'] = pd.to_numeric(gdp_df['Year'])
+st.header('🔮 Backorder Predictions with Quantum Neural Network Simulation')
+st.write(data[['Product_ID', 'Current_Inventory', 'Lead_Time', 'Predicted_Backorder']])
 
-    return gdp_df
+# Generate synthetic distance matrix for routing
+def generate_distance_matrix():
+    return np.array([
+        [0, 10, 15, 20, 25],
+        [10, 0, 10, 15, 20],
+        [15, 10, 0, 10, 15],
+        [20, 15, 10, 0, 10],
+        [25, 20, 15, 10, 0]
+    ])
 
-gdp_df = get_gdp_data()
+distance_matrix = generate_distance_matrix()
 
-# -----------------------------------------------------------------------------
-# Draw the actual page
+# Vehicle Routing Problem (VRP) Optimization
+def optimize_vrp(distance_matrix):
+    num_locations = len(distance_matrix)
+    G = nx.complete_graph(num_locations)
+    
+    for i in range(num_locations):
+        for j in range(num_locations):
+            if i != j:
+                G[i][j]['weight'] = distance_matrix[i][j]
 
-# Set the title that appears at the top of the page.
-'''
-# :earth_americas: GDP dashboard
+    pos = nx.spring_layout(G)
+    plt.figure(figsize=(10, 8))
+    nx.draw(G, pos, with_labels=True, node_color='lightgreen', node_size=700, font_size=16, font_weight='bold')
+    edge_labels = nx.get_edge_attributes(G, 'weight')
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_color='red', font_size=12)
+    plt.title('🚚 Optimized Routing Network', fontsize=18, fontweight='bold')
+    st.pyplot(plt.gcf())
 
-Browse GDP data from the [World Bank Open Data](https://data.worldbank.org/) website. As you'll
-notice, the data only goes to 2022 right now, and datapoints for certain years are often missing.
-But it's otherwise a great (and did I mention _free_?) source of data.
-'''
+st.header('🚚 Vehicle Routing Problem Optimization')
+optimize_vrp(distance_matrix)
 
-# Add some spacing
-''
-''
+# Plot Distance Matrix
+def plot_distance_matrix(matrix):
+    fig, ax = plt.subplots()
+    cax = ax.matshow(matrix, cmap='coolwarm', vmin=0, vmax=25)
+    fig.colorbar(cax)
+    plt.title('📏 Distance Matrix Heatmap', fontsize=18, fontweight='bold')
+    plt.xlabel('Destination')
+    plt.ylabel('Source')
+    st.pyplot(fig)
 
-min_value = gdp_df['Year'].min()
-max_value = gdp_df['Year'].max()
-
-from_year, to_year = st.slider(
-    'Which years are you interested in?',
-    min_value=min_value,
-    max_value=max_value,
-    value=[min_value, max_value])
-
-countries = gdp_df['Country Code'].unique()
-
-if not len(countries):
-    st.warning("Select at least one country")
-
-selected_countries = st.multiselect(
-    'Which countries would you like to view?',
-    countries,
-    ['DEU', 'FRA', 'GBR', 'BRA', 'MEX', 'JPN'])
-
-''
-''
-''
-
-# Filter the data
-filtered_gdp_df = gdp_df[
-    (gdp_df['Country Code'].isin(selected_countries))
-    & (gdp_df['Year'] <= to_year)
-    & (from_year <= gdp_df['Year'])
-]
-
-st.header('GDP over time', divider='gray')
-
-''
-
-st.line_chart(
-    filtered_gdp_df,
-    x='Year',
-    y='GDP',
-    color='Country Code',
-)
-
-''
-''
-
-
-first_year = gdp_df[gdp_df['Year'] == from_year]
-last_year = gdp_df[gdp_df['Year'] == to_year]
-
-st.header(f'GDP in {to_year}', divider='gray')
-
-''
-
-cols = st.columns(4)
-
-for i, country in enumerate(selected_countries):
-    col = cols[i % len(cols)]
-
-    with col:
-        first_gdp = first_year[first_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
-        last_gdp = last_year[last_year['Country Code'] == country]['GDP'].iat[0] / 1000000000
-
-        if math.isnan(first_gdp):
-            growth = 'n/a'
-            delta_color = 'off'
-        else:
-            growth = f'{last_gdp / first_gdp:,.2f}x'
-            delta_color = 'normal'
-
-        st.metric(
-            label=f'{country} GDP',
-            value=f'{last_gdp:,.0f}B',
-            delta=growth,
-            delta_color=delta_color
-        )
+st.header('📏 Distance Matrix Heatmap')
+plot_distance_matrix(distance_matrix)
